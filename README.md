@@ -1,1 +1,1 @@
-This is a group project for Introduction to AI 4368
+This is a group project for Intro to Ai 4368
