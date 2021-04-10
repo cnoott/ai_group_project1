@@ -12,10 +12,18 @@ class GridWorld:
         self.grid = np.zeros((self.height, self.width)) - 1
 
         # Set random start location for the agent
-        self.current_location = (4, 1, False)
-        # Set locations for the bomb and the gold
-        self.P_location = [(2, 4, 8), (3, 1, 8)]
-        self.D_location = [(0, 0, 0), (0, 4, 0), (2, 2, 0), (4, 4, 0)]
+# <<<<<<< Kien
+#         self.current_location = (4, 1, False)
+#         # Set locations for the bomb and the gold
+#         self.P_location = [(2, 4, 8), (3, 1, 8)]
+#         self.D_location = [(0, 0, 0), (0, 4, 0), (2, 2, 0), (4, 4, 0)]
+# =======
+#         self.current_location = (4, 1)
+#         self.block = False  # True for agent carrying a block and vice versa
+#         # Set locations for the bomb and the gold
+#         self.P_location = [(2, 4), (3, 1)]
+#         self.D_location = [(0, 0), (0, 4), (2, 2), (4, 4)]
+# >>>>>>> main
         self.terminal_states = [self.P_location, self.D_location]
 
         # Set grid rewards for special cells
@@ -90,12 +98,15 @@ class GridWorld:
             return 'TERMINAL'
 
 
-class RandomAgent():        
-    # Choose a random action
-    def choose_action(self, available_actions):
-        """Returns a random choice of the available actions"""
-        return np.random.choice(available_actions)
+# <<<<<<< Kien
+# class RandomAgent():        
+#     # Choose a random action
+#     def choose_action(self, available_actions):
+#         """Returns a random choice of the available actions"""
+#         return np.random.choice(available_actions)
 
+# =======
+# >>>>>>> main
 class Q_Agent():
     # Intialise
     def __init__(self, environment, epsilon=0.05, alpha=0.1, gamma=1):
@@ -164,8 +175,12 @@ def play(environment, agent, trials=500, max_steps_per_episode=1000, learn=False
 environment = GridWorld()
 agentQ = Q_Agent(environment)
 
-# Note the learn=True argument!
+# # Note the learn=True argument!
+# <<<<<<< Kien
+# # reward_per_episode = play(environment, agentQ, trials=500, learn=True)
+# =======
 # reward_per_episode = play(environment, agentQ, trials=500, learn=True)
+# >>>>>>> main
 
 # Simple learning curve
 plt.plot(reward_per_episode)
@@ -180,4 +195,8 @@ def pretty(d, indent=0):
             print('\t' * (indent + 1) + str(value))
 
 
+# <<<<<<< Kien
+# # pretty(agentQ.q_table)
+# =======
 # pretty(agentQ.q_table)
+# >>>>>>> main
