@@ -31,5 +31,4 @@ class PDWorld:
     # 
     def get_reward(self, next_state)
         return self.grid[next_state]
-    
-       
+
