@@ -153,26 +153,41 @@ class Agent():
             action = actions[random.randint(0,len(actions)-1)]
 
         return action
-    
-    def PGREEDY(self, applicable_actions):
 
+
+    def PGREEDY(self, applicable_actions):
         if len(self.world.get_applicable_actions()) == 1:
             action = self.world.get_applicable_actions()
             print('Chosen action:', action)
         else:
             self.x, self.y = self.world.current_state[0], self.world.current_state[1]
             action = self.world.get_applicable_actions()
-            print('AAPLICABLE ACTIONS: ', action)
-            if self.world.current_state[2]: #block
-                current_state_qvalues = self.q_table_block[self.x,self.y]
-                print('CURRENT STATE Q VALUES: ',current_state_qvalues)
-                highestQvalue = max(highestQvalue)
-                print('HIESTEST Q VALUE: ',current_state_qvalues)
-                action = random.choice([i for i in action if i[0] == highestQvalue])
-                #action = max(current_state_qvalues, key=current_state_qvalues.get)  
 
-                print('Chosen action: ', action)
+            if self.world.current_state[2]: #block
+                invalid_actions = list(set(self.q_table_block[self.x, self.y].keys()) - set(action))
+                
+                copy_q_table_block = self.q_table_block[self.x, self.y]
+                print(copy_q_table_block)
+                if invalid_actions :
+                    [copy_q_table_block.pop(key) for key in invalid_actions]
+
+                current_state_qvalues = copy_q_table_block
+                highestQvalue = max(current_state_qvalues.values())
+                action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
+                print('Choose action:', action)
+
             else:
+                invalid_actions = list(set(self.q_table_no_block[self.x, self.y].keys()) - set(action))
+
+                if invalid_actions :
+                    [self.q_table_no_block[self.x, self.y].pop(key) for key in invalid_actions]
+
+                current_state_qvalues = self.q_table_no_block[self.x, self.y]
+                highestQvalue = max(current_state_qvalues.values())
+                action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
+                print('Choose action:', action)
+
+                '''
                 current_state_qvalues = self.q_table_no_block[self.x,self.y]
                 print('CURRENT STATE Q VALUES: ',current_state_qvalues)
                 highestQvalue = max(current_state_qvalues.values())
@@ -181,11 +196,22 @@ class Agent():
                 #action = max(current_state_qvalues, key=current_state_qvalues.get)  
                 print('Chosen action: ', action)
 
+
+
+
+                current_state_qvalues = self.q_table_block[self.x,self.y]
+                print('CURRENT STATE Q VALUES: ',current_state_qvalues)
+
+                highestQvalue = max(highestQvalue)
+                print('HIESTEST Q VALUE: ',current_state_qvalues)
+
+                action = random.choice([i for i in action if i[0] == highestQvalue])
+                #action = max(current_state_qvalues, key=current_state_qvalues.get)  
+
+                print('Chosen action: ', action)
+                ''' 
         return action
 
-
-    def PEXPLOIT(self, applicable_actions):
-        pass
     
     '''
     def Q_learning(self, current_state, reward, next_state, action):
@@ -199,7 +225,9 @@ class Agent():
     '''
     def Q_learning(self, current_state, reward, next_state,action):
         if current_state[2]: #block
+            print("CURRENT_STATE 0: ",self.q_table_block[current_state[0], current_state[1]])
             current_qvalue = self.q_table_block[current_state[0], current_state[1]][action]
+
             next_state_qvalues = self.q_table_block[next_state[0],next_state[1]]
             highest_q_value = max(next_state_qvalues.values())
 
