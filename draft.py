@@ -1,7 +1,6 @@
 import numpy as np
 import operator
 import time
-import random
 
 class PDWorld:
     terminal_states_reached = 0
@@ -129,91 +128,39 @@ class PDWorld:
 class Agent():
     def __init__(self, world, alpha = 0.1, gamma = 1, epsilon = 0):
         self.world = world
-
-        self.q_table_block = dict()
-        for x in range(25): # Initialize q-table with values 0.
-            for y in range(6):
-                self.q_table_block[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0,'P':0,'D':0}
-
-        self.q_table_no_block = dict()
-        for x in range(25): # Initialize q-table with values 0.
-            for y in range(6):
-                self.q_table_no_block[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0,'P':0,'D':0}
-
+        self.q_table = dict()
+        for x in range(world.height): # Initialize q-table with values 0.
+            for y in range(world.width):
+                self.q_table[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0}
         self.epsilon = epsilon
         self.alpha = alpha
-        self.gamma = gamma
-    
-    def PRANDOM(self, applicable_actions):
-        if len(self.world.get_applicable_actions()) == 1:
-            action = self.world.get_applicable_actions()
-            print('Chosen action:', action)
-        else:
-            actions = self.world.get_applicable_actions()
-            action = actions[random.randint(0,len(actions)-1)]
 
-        return action
-    
     def PGREEDY(self, applicable_actions):
 
         if len(self.world.get_applicable_actions()) == 1:
             action = self.world.get_applicable_actions()
-            print('Chosen action:', action)
+            print('Choose action:',action)
         else:
             self.x, self.y = self.world.current_state[0], self.world.current_state[1]
             action = self.world.get_applicable_actions()
-            print('AAPLICABLE ACTIONS: ', action)
-            if self.world.current_state[2]: #block
-                current_state_qvalues = self.q_table_block[self.x,self.y]
-                print('CURRENT STATE Q VALUES: ',current_state_qvalues)
-                highestQvalue = max(highestQvalue)
-                print('HIESTEST Q VALUE: ',current_state_qvalues)
-                action = random.choice([i for i in action if i[0] == highestQvalue])
-                #action = max(current_state_qvalues, key=current_state_qvalues.get)  
+            # Remove invalid actions from q_table since q_table has all 4 NSWE actions for each cell by default
+            invalid_actions = list(set(self.q_table[self.x, self.y].keys()) - set(action))
+            if invalid_actions :
+                [self.q_table[self.x, self.y].pop(key) for key in invalid_actions]
 
-                print('Chosen action: ', action)
-            else:
-                current_state_qvalues = self.q_table_no_block[self.x,self.y]
-                print('CURRENT STATE Q VALUES: ',current_state_qvalues)
-                highestQvalue = max(current_state_qvalues.values())
-                print('HIGHEST STATE Q VALUES: ',highestQvalue)
-                action = random.choice([i for i in action if i[0] == highestQvalue])
-                #action = max(current_state_qvalues, key=current_state_qvalues.get)  
-                print('Chosen action: ', action)
-
+            current_state_qvalues = self.q_table[self.x, self.y]
+            highestQvalue = max(current_state_qvalues.values())
+            action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
+            print('Choose action:', action)
         return action
 
-
-    def PEXPLOIT(self, applicable_actions):
-        pass
-    
-    '''
     def Q_learning(self, current_state, reward, next_state, action):
-        current_qvalue = self.q_table[current_state[0],current_state[1]][action]
-        next_state_qvalues = self.q_table[next_state[0],next_state[1]]
+        current_qvalue = self.q_table[current_state][action]
+        next_state_qvalues = self.q_table[next_state]
         highestQvalue_in_next_state = max(next_state_qvalues.values())
 
-        self.q_table[current_state[0],current_state[1]][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
-            reward + self.gamma * highestQvalue_in_next_state)
-
-    '''
-    def Q_learning(self, current_state, reward, next_state,action):
-        if current_state[2]: #block
-            current_qvalue = self.q_table_block[current_state[0], current_state[1]][action]
-            next_state_qvalues = self.q_table_block[next_state[0],next_state[1]]
-            highest_q_value = max(next_state_qvalues.values())
-
-            self.q_table_block[current_state[0],current_state[1]][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
-            reward + self.gamma * highest_q_value)
-
-        else:
-            current_qvalue = self.q_table_no_block[current_state[0], current_state[1]][action]
-            next_state_qvalues = self.q_table_no_block[next_state[0],next_state[1]]
-            highest_q_value = max(next_state_qvalues.values())
-
-            self.q_table_no_block[current_state[0],current_state[1]][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
-            reward + self.gamma * highest_q_value)
-
+        self.q_table[current_state][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
+            reward + self.gamma * highestQvalue_in_next_state[0])
 
 def play(world, agent, policy, max_steps):
     total_reward = 0
@@ -223,16 +170,14 @@ def play(world, agent, policy, max_steps):
         x, y = world.current_state[0], world.current_state[1]
         # current_state = [x,y]
         if policy == 1:
-            action = agent.PRANDOM(world.get_applicable_actions())
+            action = agent.PGREEDY(world.get_applicable_actions())
         elif policy == 2:
             action = agent.PGREEDY(world.get_applicable_actions())
         elif policy == 3:
             action = agent.PGREEDY(world.get_applicable_actions())
         reward = world.take_action(action)
-
-        next_state = [x, y]
-        agent.Q_learning(world.current_state, reward, next_state, action) # Comment this out for PRANDOM
-
+        # next_state = [x, y]
+        # agent.Q_learning(current_state, reward, next_state, action) # Comment this out for PRANDOM
         total_reward += reward
         step += 1
         print(f'^^^^^Step {step} out of {max_steps}.^^^^^')
@@ -244,7 +189,7 @@ def play(world, agent, policy, max_steps):
 
 cu = PDWorld()
 to = Agent(cu)
-play(cu, to, 2, 6000)
+play(cu, to, 1, 6000)
 
 # cu.current_state[0:3] = 2, 2, True
 # print(cu.get_applicable_actions())
