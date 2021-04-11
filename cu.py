@@ -126,7 +126,7 @@ class PDWorld:
         return 1
             
 class Agent():
-    def __init__(self, world, alpha = 0.1, gamma = 1, epsilon = 0):
+    def __init__(self, world, alpha = 0.3, gamma = 0.5, epsilon = 0):
         self.world = world
 
         self.q_table_block = dict()
@@ -187,43 +187,7 @@ class Agent():
                 highestQvalue = max(current_state_qvalues.values())
                 action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
                 print('Choose action:', action)
-
-                '''
-                current_state_qvalues = self.q_table_no_block[self.x,self.y]
-                print('CURRENT STATE Q VALUES: ',current_state_qvalues)
-                highestQvalue = max(current_state_qvalues.values())
-                print('HIGHEST STATE Q VALUES: ',highestQvalue)
-                action = random.choice([i for i in action if i[0] == highestQvalue])
-                #action = max(current_state_qvalues, key=current_state_qvalues.get)  
-                print('Chosen action: ', action)
-
-
-
-
-                current_state_qvalues = self.q_table_block[self.x,self.y]
-                print('CURRENT STATE Q VALUES: ',current_state_qvalues)
-
-                highestQvalue = max(highestQvalue)
-                print('HIESTEST Q VALUE: ',current_state_qvalues)
-
-                action = random.choice([i for i in action if i[0] == highestQvalue])
-                #action = max(current_state_qvalues, key=current_state_qvalues.get)  
-
-                print('Chosen action: ', action)
-                ''' 
         return action
-
-    
-    '''
-    def Q_learning(self, current_state, reward, next_state, action):
-        current_qvalue = self.q_table[current_state[0],current_state[1]][action]
-        next_state_qvalues = self.q_table[next_state[0],next_state[1]]
-        highestQvalue_in_next_state = max(next_state_qvalues.values())
-
-        self.q_table[current_state[0],current_state[1]][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
-            reward + self.gamma * highestQvalue_in_next_state)
-
-    '''
     def Q_learning(self, current_state, reward, next_state, action):
         if current_state[2]: #block
             print("CURRENT_STATE 0: ", self.q_table_block[current_state[0], current_state[1]])
