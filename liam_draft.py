@@ -165,8 +165,8 @@ class Agent():
 
             if self.world.current_state[2]: #block
                 invalid_actions = list(set(self.q_table_block[self.x, self.y].keys()) - set(action))
-                
-                copy_q_table_block = self.q_table_block[self.x, self.y]
+                copy_q_table_block = self.q_table_block[self.x, self.y].copy()
+
                 print(copy_q_table_block)
                 if invalid_actions :
                     [copy_q_table_block.pop(key) for key in invalid_actions]
@@ -178,11 +178,13 @@ class Agent():
 
             else:
                 invalid_actions = list(set(self.q_table_no_block[self.x, self.y].keys()) - set(action))
+                copy_q_table_no_block = self.q_table_no_block[self.x, self.y].copy()
 
+                print(copy_q_table_no_block)
                 if invalid_actions :
-                    [self.q_table_no_block[self.x, self.y].pop(key) for key in invalid_actions]
+                    [copy_q_table_no_block.pop(key) for key in invalid_actions]
 
-                current_state_qvalues = self.q_table_no_block[self.x, self.y]
+                current_state_qvalues = copy_q_table_no_block
                 highestQvalue = max(current_state_qvalues.values())
                 action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
                 print('Choose action:', action)
