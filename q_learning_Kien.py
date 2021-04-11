@@ -128,8 +128,8 @@ class Q_Agent():
             action = available_actions[np.random.randint(0, len(available_actions))]
         else:
             q_values_of_state = self.q_table[self.environment.current_location]
-            maxValue = max(q_values_of_state.values())
-            action = np.random.choice([k for k, v in q_values_of_state.items() if v == maxValue])
+            highestQvalue = max(q_values_of_state.values())
+            action = np.random.choice([k for k, v in q_values_of_state.items() if v == highestQvalue])
 
         return action
 

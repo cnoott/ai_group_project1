@@ -1,14 +1,14 @@
 import numpy as np
 import operator
-
+import time
 
 class PDWorld:
+    terminal_states_reached = 0
     def __init__(self):
         #Initialize PDWorld
         self.height = 5
         self.width = 5
         self.grid = np.zeros((self.height, self.width)) - 1
-        self.terminal_states_reached = 0
 
         self.initial_state = (4, 0, False)
         self.current_state = list(self.initial_state)
@@ -16,7 +16,7 @@ class PDWorld:
         self.initial_matrix = np.array([[2, 4, 8], [3, 1, 8], [0, 0, 0], [0, 4, 0], [2, 2, 0], [4, 4, 0]])
         self.current_matrix = self.initial_matrix
         self.terminal_matrix = np.array([[2, 4, 0], [3, 1, 0], [0, 0, 4], [0, 4, 4], [2, 2, 4], [4, 4, 4]])
-
+        
         # Set reward for Pickup/Dropoff states
         for i in range(np.shape(self.initial_matrix)[0]):
             self.grid[self.initial_matrix[i][0], self.initial_matrix[i][1]] = 13
@@ -28,38 +28,41 @@ class PDWorld:
     def print_current_state(self): # for debugging
         grid = np.zeros((self.height, self.width))
         grid[self.current_state[0], self.current_state[1]] = 1
-        print(np.concatenate((self.grid, grid, self.current_matrix), axis=1).astype(int))
-    
+        print(np.concatenate((self.grid, grid), axis=1).astype(int), 'Current state: ', self.current_state)
+        print(self.current_matrix)
+
     def get_reward(self, state):
         return self.grid[state[0], state[1]]
     
     def take_action(self, action):
         
         if action == 'N':
-            self.current_state = (self.current_state[0] - 1, self.current_state[1])
-            reward = self.get_reward(self.current_state)
+            self.current_state[0:2] = [self.current_state[0] - 1, self.current_state[1]]
+            reward = -1
 
         elif action == 'S':
-            self.current_state = (self.current_state[0] + 1, self.current_state[1])
-            reward = self.get_reward(self.current_state)
+            self.current_state[0:2] = [self.current_state[0] + 1, self.current_state[1]]
+            reward = -1
 
         elif action == 'W':
-            self.current_state = (self.current_state[0] - 1, self.current_state[1] - 1)
-            reward = self.get_reward(self.current_state)
+            self.current_state[0:2] = [self.current_state[0], self.current_state[1] - 1]
+            reward = -1
    
         elif action == 'E':
-            self.current_state = (self.current_state[0] - 1, self.current_state[1] + 1)
-            reward = self.get_reward(self.current_state)
+            self.current_state[0:2] = [self.current_state[0], self.current_state[1] + 1]
+            reward = -1
         
         elif action == 'P':
             row = np.where((self.current_matrix[:,0:2]== self.current_state[0:2]).all(axis=1))[0] # Get the row of the P location
             self.current_matrix[row, 2] -= 1 # Update the number of blocks that the P location has (take 1 block) 
-            reward = self.get_reward(self.current_state)
+            self.current_state[2] = True
+            reward = 13
 
         elif action == 'D':
             row = np.where((self.current_matrix[:,0:2] == self.current_state[0:2]).all(axis=1))[0] # Get the row of the P location
             self.current_matrix[row, 2] += 1 # Update the number of blocks that the P location has (add 1 block) 
-            reward = self.get_reward(self.current_state)
+            self.current_state[2] = False
+            reward = 13
         return reward
 
     def check_walls(self):
@@ -95,8 +98,8 @@ class PDWorld:
 
     def get_applicable_actions(self):
         applicable_actions = self.check_walls()
-        if self.current_state[0:2] in self.current_matrix[:, 0:2]:
-            row = np.where((self.current_matrix[:,0:2] == self.current_state[0:2]).all(axis=1))[0]
+        if self.current_state[0:2] in self.current_matrix[:, 0:2].tolist():
+            row = np.where((self.current_matrix[:, 0:2] == self.current_state[0:2]).all(axis=1))[0]
             if row in [0, 1]:
                 if self.current_state[2] == False and self.current_matrix[row, 2] != 0:
                     return 'P'
@@ -115,12 +118,86 @@ class PDWorld:
     
     def check_terminal_state(self):
         if (self.current_matrix == self.terminal_matrix).all():
+            print(f'{self.terminal_states_reached} Terminal state(s) reached. Reset world to initial state...............')
             self.terminal_states_reached += 1
-            self.current_state = list(self.initial_state)
-            return f'{self.terminal_states_reached} Terminal state(s) reached. Reset current state to initial state.'
+            self.__init__()
+        return 1
+            
+
+
+class Agent():
+    def __init__(self, world, alpha = 0.1, gamma = 1, epsilon = 0):
+        self.world = world
+        self.q_table = dict()
+        for x in range(world.height): # Initialize q-table with values 0.
+            for y in range(world.width):
+                self.q_table[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0}
+        self.epsilon = epsilon
+        self.alpha = alpha
+
+    def PGREEDY(self, applicable_actions):
+
+        if len(self.world.get_applicable_actions()) == 1:
+            action = self.world.get_applicable_actions()
+            print('Choose action:',action)
+        else:
+            self.x, self.y = self.world.current_state[0], self.world.current_state[1]
+            action = self.world.get_applicable_actions()
+            # Remove invalid actions from q_table since q_table has all 4 NSWE actions for each cell by default
+            invalid_actions = list(set(self.q_table[self.x, self.y].keys()) - set(action))
+            if invalid_actions :
+                [self.q_table[self.x, self.y].pop(key) for key in invalid_actions]
+
+            current_state_qvalues = self.q_table[self.x, self.y]
+            highestQvalue = max(current_state_qvalues.values())
+            action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
+            print('Choose action:', action)
+        return action
+
+    def Q_learning(self, current_state, reward, next_state, action):
+        current_qvalue = self.q_table[current_state][action]
+        next_state_qvalues = self.q_table[next_state]
+        highestQvalue_in_next_state = max(next_state_qvalues.values())
+
+        self.q_table[current_state][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
+            reward + self.gamma * highestQvalue_in_next_state[0])
+
+def play(world, agent, policy, max_steps):
+    total_reward = 0
+    step = 0
+    while step < max_steps:
+        world.print_current_state()
+        x, y = world.current_state[0], world.current_state[1]
+        # current_state = [x,y]
+        if policy == 1:
+            action = agent.PGREEDY(world.get_applicable_actions())
+        elif policy == 2:
+            action = agent.PGREEDY(world.get_applicable_actions())
+        elif policy == 3:
+            action = agent.PGREEDY(world.get_applicable_actions())
+        reward = world.take_action(action)
+        # next_state = [x, y]
+        # agent.Q_learning(current_state, reward, next_state, action) # Comment this out for PRANDOM
+        total_reward += reward
+        step += 1
+        print(f'^^^^^Step {step} out of {max_steps}.^^^^^')
+        world.check_terminal_state()
+        # time.sleep(0.1)
+    print('Number of terminal states the agent reached:', world.terminal_states_reached)
+    print('Total reward:', total_reward)
+    return total_reward
 
 cu = PDWorld()
-cu.current_state[0:3] = 2, 2, True
-print(cu.current_state)
-print((cu.current_matrix == cu.current_matrix).all())
+to = Agent(cu)
+play(cu, to, 1, 6000)
+
+# cu.current_state[0:3] = 2, 2, True
+# print(cu.get_applicable_actions())
+# print(to.PGREEDY(cu.get_applicable_actions()))
+
+
+
+# cu.current_state[0:3] = 2, 2, True
+# print(to.PGREEDY(cu.get_applicable_actions()))
+# print(len(cu.get_applicable_actions()))
 
