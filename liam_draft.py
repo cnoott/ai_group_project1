@@ -272,11 +272,11 @@ def play(world, agent, policy, max_steps):
 
 cu = PDWorld()
 to = Agent(cu)
-play(cu, to, 2, 6000)
+# play(cu, to, 2, 6000)
 
-# cu.current_state[0:3] = 2, 2, True
+cu.current_state[0:3] = 2, 2, True
 # print(cu.get_applicable_actions())
-# print(to.PGREEDY(cu.get_applicable_actions()))
+print(to.PGREEDY(cu.get_applicable_actions()))
 
 
 
