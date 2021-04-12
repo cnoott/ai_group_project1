@@ -150,6 +150,7 @@ class Agent():
 
             current_state_qvalues = self.q_table[self.x, self.y]
             highestQvalue = max(current_state_qvalues.values())
+            print('CHOICES:',[k for k, v in current_state_qvalues.items() if v == highestQvalue])
             action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
             print('Choose action:', action)
         return action
