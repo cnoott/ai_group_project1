@@ -54,14 +54,14 @@ class PDWorld:
             reward = -1
         
         elif action == 'P':
-            row = np.where((self.current_matrix[:,0:2]== self.current_state[0:2]).all(axis=1))[0] # Get the row of the P location
-            self.current_matrix[row, 2] -= 1 # Update the number of blocks that the P location has (take 1 block) 
+            row = np.where((self.current_matrix[:,0:2]== self.current_state[0:2]).all(axis=1))[0].tolist() # Get the row of the P location
+            self.current_matrix[row[0], 2] -= 1 # Update the number of blocks that the P location has (take 1 block) 
             self.current_state[2] = True
             reward = 13
 
         elif action == 'D':
-            row = np.where((self.current_matrix[:,0:2] == self.current_state[0:2]).all(axis=1))[0] # Get the row of the P location
-            self.current_matrix[row, 2] += 1 # Update the number of blocks that the P location has (add 1 block) 
+            row = np.where((self.current_matrix[:,0:2] == self.current_state[0:2]).all(axis=1))[0].tolist() # Get the row of the P location
+            self.current_matrix[row[0], 2] += 1 # Update the number of blocks that the P location has (add 1 block) 
             self.current_state[2] = False
             reward = 13
 
@@ -129,7 +129,7 @@ class PDWorld:
         return 1
             
 class Agent():
-    def __init__(self, world, alpha = 0.3, gamma = 0.5, epsilon = 0):
+    def __init__(self, world, alpha = 0.01, gamma = 0.5, epsilon = 0):
         self.world = world
 
         self.q_table_block = dict()
@@ -146,15 +146,15 @@ class Agent():
         self.alpha = alpha
         self.gamma = gamma
     
-    # def PRANDOM(self, applicable_actions):
-    #     if len(self.world.get_applicable_actions()) == 1:
-    #         action = self.world.get_applicable_actions()
-    #         print('Chosen action:', action)
-    #     else:
-    #         actions = self.world.get_applicable_actions()
-    #         action = actions[random.randint(0,len(actions)-1)]
+    def PRANDOM(self, applicable_actions):
+        if len(self.world.get_applicable_actions()) == 1:
+            action = self.world.get_applicable_actions()
+            print('Chosen action:', action)
+        else:
+            actions = self.world.get_applicable_actions()
+            action = actions[random.randint(0,len(actions)-1)]
 
-    #     return action
+        return action
 
 
     def PGREEDY(self, applicable_actions):
@@ -201,8 +201,21 @@ class Agent():
             print("Q VALUE 1: ", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
             # current_qvalue = self.q_table_block[current_state[0], current_state[1]][action]
 
-            next_state_qvalues = self.q_table_block[next_state[0],next_state[1]]
-            highest_q_value = max(next_state_qvalues.values())
+            next_state_qvalues = self.q_table_block[next_state[0],next_state[1]].copy()
+
+            # Check if a D block is full
+            row = np.where((self.world.current_matrix[:,0:2] == next_state[0:2]).all(axis=1))[0].tolist()
+            if row: # Get the row of the next state if it's a D location
+                print(row[0], 'ROW type', type(row))
+                if  self.world.current_matrix[row[0], 2] == 4:
+                    print(next_state_qvalues)
+                    del next_state_qvalues['D']
+                    del next_state_qvalues['P']
+                    highest_q_value = max(next_state_qvalues.values())
+                else:
+                    highest_q_value = max(next_state_qvalues.values())
+            else:
+                highest_q_value = max(next_state_qvalues.values())
             print('REWARD:',reward)
             self.q_table_block[current_state[0], current_state[1]][action] = (1 - self.alpha) * self.q_table_block[current_state[0], current_state[1]][action] + self.alpha * (reward + self.gamma * highest_q_value)
             print("UPDATED Q VALUE 1: ", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
@@ -210,8 +223,21 @@ class Agent():
             print("Q VALUE 0: ",self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
             # current_qvalue = self.q_table_no_block[current_state[0], current_state[1]][action]
 
-            next_state_qvalues = self.q_table_no_block[next_state[0],next_state[1]]
-            highest_q_value = max(next_state_qvalues.values())
+            next_state_qvalues = self.q_table_no_block[next_state[0],next_state[1]].copy()
+
+            # Check if a P block is empty
+            row = np.where((self.world.current_matrix[:,0:2] == next_state[0:2]).all(axis=1))[0].tolist()
+            if row: # Get the row of the next state if it's a P location
+                print(row[0], 'ROW type', type(row))
+                if  self.world.current_matrix[row[0], 2] == 0:
+                    print(next_state_qvalues)
+                    del next_state_qvalues['D']
+                    del next_state_qvalues['P']
+                    highest_q_value = max(next_state_qvalues.values())
+                else:
+                    highest_q_value = max(next_state_qvalues.values())
+            else:
+                highest_q_value = max(next_state_qvalues.values())
             print('REWARD:',reward)
             self.q_table_no_block[current_state[0], current_state[1]][action] = (1 - self.alpha) * self.q_table_no_block[current_state[0], current_state[1]][action] + self.alpha * (reward + self.gamma * highest_q_value)
             print("UPDATED Q VALUE 0: ",self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
@@ -219,6 +245,21 @@ class Agent():
 def play(world, agent, policy, max_steps):
     total_reward = 0
     step = 0
+    while step < 500:
+        step += 1
+        print(f'----------------------Step {step} out of {max_steps}.----------------------')
+        world.print_current_state()
+        copy_current_state = world.current_state.copy()
+        # print('CURRENT STATE', copy_current_state)
+        action = agent.PRANDOM(world.get_applicable_actions())
+        reward = world.take_action(action)
+        next_state = world.current_state.copy()
+        print('NEXT STATE', next_state)
+        agent.Q_learning(copy_current_state, reward, next_state, action)
+
+        total_reward += reward
+        world.check_terminal_state()
+        # time.sleep(0.1)
     while step < max_steps:
         step += 1
         print(f'----------------------Step {step} out of {max_steps}.----------------------')
