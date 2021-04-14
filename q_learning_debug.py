@@ -124,9 +124,8 @@ class PDWorld:
             self.__init__()
             
 class Agent():
-    def __init__(self, world, alpha=0.01, gamma=0.5, epsilon=0):
+    def __init__(self, world, alpha=0.01, gamma=0.5):
         self.world = world
-        self.epsilon = epsilon
         self.alpha = alpha
         self.gamma = gamma
 
@@ -200,7 +199,6 @@ class Agent():
 
                     if invalid_actions:
                         [current_state_qvalues.pop(key) for key in invalid_actions] #remove unused q values
-
                     highestQvalue = max(current_state_qvalues.values())
                     action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
                     print('Choose action:', action)
@@ -325,7 +323,7 @@ def play(world, agent, policy, max_steps):
     return total_reward
 cu = PDWorld()
 to = Agent(cu)
-play(cu, to, 2, 6000)
+play(cu, to, 3, 6000)
 # cu.current_state[0:3] = 2, 2, True
 # print(cu.get_applicable_actions())
 # print(to.PGREEDY(cu.get_applicable_actions()))
