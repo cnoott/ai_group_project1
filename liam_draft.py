@@ -64,6 +64,7 @@ class PDWorld:
             self.current_matrix[row, 2] += 1 # Update the number of blocks that the P location has (add 1 block) 
             self.current_state[2] = False
             reward = 13
+
         return reward
 
     def check_walls(self):
@@ -124,8 +125,6 @@ class PDWorld:
             self.__init__()
         return 1
             
-
-
 class Agent():
     def __init__(self, world, alpha = 0.1, gamma = 1, epsilon = 0):
         self.world = world
@@ -133,12 +132,12 @@ class Agent():
         self.q_table_block = dict()
         for x in range(25): # Initialize q-table with values 0.
             for y in range(6):
-                self.q_table_block[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0,'P':0,'D':0}
+                self.q_table_block[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0,'P': 0,'D':0}
 
         self.q_table_no_block = dict()
         for x in range(25): # Initialize q-table with values 0.
             for y in range(6):
-                self.q_table_no_block[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0,'P':0,'D':0}
+                self.q_table_no_block[x,y] = {'N': 0, 'S': 0, 'W': 0, 'E': 0,'P': 0,'D':0}
 
         self.epsilon = epsilon
         self.alpha = alpha
@@ -161,12 +160,12 @@ class Agent():
             print('Chosen action:', action)
         else:
             self.x, self.y = self.world.current_state[0], self.world.current_state[1]
-            action = self.world.get_applicable_actions()
+            action = self.world.get_applicable_actions().copy()
 
             if self.world.current_state[2]: #block
                 invalid_actions = list(set(self.q_table_block[self.x, self.y].keys()) - set(action))
-                
-                copy_q_table_block = self.q_table_block[self.x, self.y]
+                copy_q_table_block = self.q_table_block[self.x, self.y].copy()
+
                 print(copy_q_table_block)
                 if invalid_actions :
                     [copy_q_table_block.pop(key) for key in invalid_actions]
@@ -178,11 +177,13 @@ class Agent():
 
             else:
                 invalid_actions = list(set(self.q_table_no_block[self.x, self.y].keys()) - set(action))
+                copy_q_table_no_block = self.q_table_no_block[self.x, self.y].copy()
 
+                print(copy_q_table_no_block)
                 if invalid_actions :
-                    [self.q_table_no_block[self.x, self.y].pop(key) for key in invalid_actions]
+                    [copy_q_table_no_block.pop(key) for key in invalid_actions]
 
-                current_state_qvalues = self.q_table_no_block[self.x, self.y]
+                current_state_qvalues = copy_q_table_no_block
                 highestQvalue = max(current_state_qvalues.values())
                 action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
                 print('Choose action:', action)
@@ -223,24 +224,23 @@ class Agent():
             reward + self.gamma * highestQvalue_in_next_state)
 
     '''
-    def Q_learning(self, current_state, reward, next_state,action):
+    def Q_learning(self, current_state, reward, next_state, action):
         if current_state[2]: #block
-            print("CURRENT_STATE 0: ",self.q_table_block[current_state[0], current_state[1]])
+            print("CURRENT_STATE 0: ", self.q_table_block[current_state[0], current_state[1]])
             current_qvalue = self.q_table_block[current_state[0], current_state[1]][action]
 
             next_state_qvalues = self.q_table_block[next_state[0],next_state[1]]
             highest_q_value = max(next_state_qvalues.values())
-
-            self.q_table_block[current_state[0],current_state[1]][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
-            reward + self.gamma * highest_q_value)
+            current_qvalue = (1 - self.alpha) * current_qvalue + self.alpha * (reward + self.gamma * highest_q_value)
 
         else:
+            print("CURRENT_STATE 0: ",self.q_table_no_block[current_state[0], current_state[1]])
             current_qvalue = self.q_table_no_block[current_state[0], current_state[1]][action]
+
             next_state_qvalues = self.q_table_no_block[next_state[0],next_state[1]]
             highest_q_value = max(next_state_qvalues.values())
 
-            self.q_table_no_block[current_state[0],current_state[1]][action] = (1 - self.alpha) * current_qvalue + self.alpha * (
-            reward + self.gamma * highest_q_value)
+            current_qvalue = (1 - self.alpha) * current_qvalue + self.alpha * (reward + self.gamma * highest_q_value)
 
 
 def play(world, agent, policy, max_steps):
@@ -259,7 +259,7 @@ def play(world, agent, policy, max_steps):
         reward = world.take_action(action)
 
         next_state = [x, y]
-        agent.Q_learning(world.current_state, reward, next_state, action) # Comment this out for PRANDOM
+        agent.Q_learning(world.current_state, reward, next_state, action)
 
         total_reward += reward
         step += 1
@@ -272,11 +272,11 @@ def play(world, agent, policy, max_steps):
 
 cu = PDWorld()
 to = Agent(cu)
-play(cu, to, 2, 6000)
+# play(cu, to, 2, 6000)
 
-# cu.current_state[0:3] = 2, 2, True
+cu.current_state[0:3] = 2, 2, True
 # print(cu.get_applicable_actions())
-# print(to.PGREEDY(cu.get_applicable_actions()))
+print(to.PGREEDY(cu.get_applicable_actions()))
 
 
 
