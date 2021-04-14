@@ -183,6 +183,47 @@ class Agent():
                 print('Choose action:', action)
         return action
 
+    def PEXPLOIT(self, applicable_actions):
+        print('Avaliable actions:', self.world.get_applicable_actions())
+        #choose P/D if applicable
+        if len(self.world.get_applicable_actions()) == 1:
+            action = self.world.get_applicable_actions()
+            print('Choose action:',action)
+        else:
+            if random.random() < .8: #80% chance to choose max q value
+                self.x, self.y = self.world.current_state[0], self.world.current_state[1]
+                action = self.world.get_applicable_actions().copy()
+
+                if self.world.current_state[2]: # has block
+                    current_state_qvalues = self.q_table_block[self.x, self.y].copy()
+                    invalid_actions = list(set(current_state_qvalues.keys()) - set(action))
+
+                    if invalid_actions:
+                        [current_state_qvalues.pop(key) for key in invalid_actions] #remove unused q values
+
+                    highestQvalue = max(current_state_qvalues.values())
+                    action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
+                    print('Choose action:', action)
+
+                else: # no block
+                    current_state_qvalues = self.q_table_no_block[self.x, self.y].copy() # Look up the q-table (without block) to get the current state q values
+                    # print(current_state_qvalues) # for debugging
+                    invalid_actions = list(set(current_state_qvalues.keys()) - set(action)) # Get unused q-values
+                    if invalid_actions:
+                        [current_state_qvalues.pop(key) for key in invalid_actions] # Remove unused q-values
+                    highestQvalue = max(current_state_qvalues.values())
+                    # choices = [k for k, v in current_state_qvalues.items() if v == highestQvalue] # for debugging
+                    # print('CHOICES', choices) # for debugging
+                    action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
+                    print('Choose action:', action)
+
+            else: #20% chance to choose random
+                actions = self.world.get_applicable_actions() # Otherwise, choose available NSWE action randomly
+                action = actions[random.randint(0, len(actions)-1)]
+                print('Chosen action:', action)
+
+        return action
+
     def Q_learning(self, current_state, reward, next_state, action):
         if current_state[2]:  # block
             print("Q VALUES WITH BLOCK:", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
@@ -251,7 +292,7 @@ def play(world, agent, policy, max_steps):
         if policy == 1:
             action = agent.PRANDOM(world.get_applicable_actions())
         elif policy == 2:
-            action = agent.PGREEDY(world.get_applicable_actions())
+            action = agent.PEXPLOIT(world.get_applicable_actions())
         elif policy == 3:
             action = agent.PGREEDY(world.get_applicable_actions())
         reward = world.take_action(action)
