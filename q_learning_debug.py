@@ -124,9 +124,8 @@ class PDWorld:
             self.__init__()
             
 class Agent():
-    def __init__(self, world, alpha=0.01, gamma=0.5, epsilon=0):
+    def __init__(self, world, alpha=0.01, gamma=0.5):
         self.world = world
-        self.epsilon = epsilon
         self.alpha = alpha
         self.gamma = gamma
 
@@ -200,7 +199,6 @@ class Agent():
 
                     if invalid_actions:
                         [current_state_qvalues.pop(key) for key in invalid_actions] #remove unused q values
-
                     highestQvalue = max(current_state_qvalues.values())
                     action = np.random.choice([k for k, v in current_state_qvalues.items() if v == highestQvalue])
                     print('Choose action:', action)
@@ -234,7 +232,6 @@ class Agent():
             if row:  # Get the row of the next state if it's a D location
                 # print(row[0], 'ROW type', type(row)) # debugging
                 if self.world.current_matrix[row[0], 2] == 4:
-                    print(next_state_qvalues)
                     del next_state_qvalues['D'], next_state_qvalues['P']
                     highest_q_value = max(next_state_qvalues.values())
                 else:
@@ -254,7 +251,6 @@ class Agent():
             if row:  # Get the row of the next state if it's a P location
                 # print(row[0], 'ROW type', type(row)) # debug
                 if self.world.current_matrix[row[0], 2] == 0:
-                    print(next_state_qvalues)
                     del next_state_qvalues['D'], next_state_qvalues['P']
                     highest_q_value = max(next_state_qvalues.values())
                 else:
@@ -265,6 +261,24 @@ class Agent():
             self.q_table_no_block[current_state[0], current_state[1]][action] = (
                 1 - self.alpha) * self.q_table_no_block[current_state[0], current_state[1]][action] + self.alpha * (reward + self.gamma * highest_q_value) # Update Q values
             print("UPDATED Q VALUES:", self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
+
+    def print_QTable(self):
+        print('Q TABLE WITHOUT BLOCK:')
+        for x in range(self.world.height):
+            for y in range(self.world.width):
+                print(f'({x},{y}): ', end='')
+                for k, v in self.q_table_no_block[x, y].items():
+                    v = round(v, 4)
+                    print(f'{k}: {v:.4f}','\t', end='', sep='')
+                print()
+        print('\nQ TABLE WITH BLOCK:')
+        for x in range(self.world.height):
+            for y in range(self.world.width):
+                print(f'({x},{y}): ', end='')
+                for k, v in self.q_table_block[x, y].items():
+                    v = round(v, 4)
+                    print(f'{k}: {v:.4f}','\t', end='', sep='')
+                print()
 
 def play(world, agent, policy, max_steps):
     total_reward = 0
@@ -305,12 +319,11 @@ def play(world, agent, policy, max_steps):
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
     print('Total reward:', total_reward)
     # print('Q Table:', agent.q_table_no_block, agent.q_table_block )
+    agent.print_QTable()
     return total_reward
-
 cu = PDWorld()
 to = Agent(cu)
-play(cu, to, 2, 6000)
-
+play(cu, to, 3, 6000)
 # cu.current_state[0:3] = 2, 2, True
 # print(cu.get_applicable_actions())
 # print(to.PGREEDY(cu.get_applicable_actions()))
