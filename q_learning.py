@@ -4,7 +4,7 @@ import time
 import random
 
 class PDWorld:
-    terminal_states_reached = 0
+    terminal_states_reached = 1
 
     def __init__(self):
         # Initialize PDWorld
@@ -123,7 +123,7 @@ class PDWorld:
             self.__init__()
             
 class Agent():
-    def __init__(self, world, alpha=0.01, gamma=0.5):
+    def __init__(self, world, alpha=0.3, gamma=0.5):
         self.world = world
         self.alpha = alpha
         self.gamma = gamma
@@ -249,42 +249,26 @@ class Agent():
             self.q_table_no_block[current_state[0], current_state[1]][action] = (
                 1 - self.alpha) * current_q_value + self.alpha * (reward + self.gamma * highest_q_value) # Update Q values
             print("UPDATED Q VALUES:", self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
-
-    # def SARSA(self, current_state, reward, next_state, action):
-    #     if current_state[2]:  # block
-    #         print("Q VALUES WITH BLOCK:", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
-    #         next_state_qvalues = self.q_table_block[next_state[0], next_state[1]].copy()
-    #         # Check if a D block is full
-    #         row = np.where((self.world.current_matrix[:, 0:2] == next_state[0:2]).all(axis=1))[0].tolist()
-    #         if row:  # Get the row of the next state if it's a D location
-    #             if self.world.current_matrix[row[0], 2] == 4:
-    #                 del next_state_qvalues['D'], next_state_qvalues['P']
-    #                 highest_q_value = max(next_state_qvalues.values())
-    #             else:
-    #                 highest_q_value = max(next_state_qvalues.values())
-    #         else:
-    #             highest_q_value = max(next_state_qvalues.values())
-    #         print('REWARD:', reward) 
-    #         self.q_table_block[current_state[0], current_state[1]][action] = (
-    #             1 - self.alpha) * self.q_table_block[current_state[0], current_state[1]][action] + self.alpha * (reward + self.gamma * highest_q_value) # Update Q values
-    #         print("UPDATED Q VALUES:", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
-    #     else:
-    #         print("Q VALUES WITHOUT BLOCK: ", self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
-    #         next_state_qvalues = self.q_table_no_block[next_state[0], next_state[1]].copy()
-    #         # Check if a P block is empty
-    #         row = np.where((self.world.current_matrix[:, 0:2] == next_state[0:2]).all(axis=1))[0].tolist()
-    #         if row:  # Get the row of the next state if it's a P location
-    #             if self.world.current_matrix[row[0], 2] == 0:
-    #                 del next_state_qvalues['D'], next_state_qvalues['P']
-    #                 highest_q_value = max(next_state_qvalues.values())
-    #             else:
-    #                 highest_q_value = max(next_state_qvalues.values())
-    #         else:
-    #             highest_q_value = max(next_state_qvalues.values())
-    #         print('REWARD:', reward)
-    #         self.q_table_no_block[current_state[0], current_state[1]][action] = (
-    #             1 - self.alpha) * self.q_table_no_block[current_state[0], current_state[1]][action] + self.alpha * (reward + self.gamma * highest_q_value) # Update Q values
-    #         print("UPDATED Q VALUES:", self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
+            
+    def SARSA(self, current_state, reward, next_state, action):
+        if current_state[2]:  # block
+            print("Q VALUES WITH BLOCK:", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
+            next_state_action = self.PEXPLOIT(self.world.get_applicable_actions())
+            next_state_qvalue = self.q_table_block[next_state[0], next_state[1]][next_state_action]
+            print('REWARD:', reward)
+            current_q_value = self.q_table_block[current_state[0], current_state[1]][action]
+            self.q_table_block[current_state[0], current_state[1]][action] = (
+                1 - self.alpha) * current_q_value + self.alpha * (reward + self.gamma * next_state_qvalue) # Update Q values
+            print("UPDATED Q VALUES:", self.q_table_block[current_state[0], current_state[1]], "at", current_state, ":", action)
+        else:
+            print("Q VALUES WITHOUT BLOCK: ", self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
+            next_state_action = self.PEXPLOIT(self.world.get_applicable_actions())
+            next_state_qvalue = self.q_table_no_block[next_state[0], next_state[1]][next_state_action]
+            print('REWARD:', reward)
+            current_q_value = self.q_table_no_block[current_state[0], current_state[1]][action]
+            self.q_table_no_block[current_state[0], current_state[1]][action] = (
+                1 - self.alpha) * current_q_value + self.alpha * (reward + self.gamma * next_state_qvalue) # Update Q values
+            print("UPDATED Q VALUES:", self.q_table_no_block[current_state[0], current_state[1]], "at", current_state, ":", action)
 
     def print_QTable(self):
         print('\nQ TABLE WITHOUT BLOCK:')
@@ -304,7 +288,7 @@ class Agent():
                     print(f'{k}: {v:.4f}','\t', end='', sep='')
                 print()
 
-def play(world, agent, policy, max_steps):
+def play(world, agent, policy, max_steps, SARSA=False):
     total_reward = 0
     step = 0
     while step < 500:
@@ -333,7 +317,7 @@ def play(world, agent, policy, max_steps):
         reward = world.take_action(action)
         next_state = world.current_state.copy()
         print('Next state:', next_state)
-        agent.Q_learning(current_state, reward, next_state, action)
+        agent.SARSA(current_state, reward, next_state, action) if SARSA else agent.Q_learning(current_state, reward, next_state, action)
         total_reward += reward
         world.check_terminal_state()
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
@@ -343,4 +327,4 @@ def play(world, agent, policy, max_steps):
 
 environment = PDWorld()
 agent = Agent(environment)
-play(environment, agent, 3, 6000)
+play(environment, agent, 3, 6000, SARSA=True)
