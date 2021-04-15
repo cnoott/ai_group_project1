@@ -2,9 +2,10 @@ import numpy as np
 import operator
 import time
 import random
+import matplotlib.pyplot as plt
 
 class PDWorld:
-    terminal_states_reached = 1
+    terminal_states_reached = 0
 
     def __init__(self):
         # Initialize PDWorld
@@ -118,9 +119,12 @@ class PDWorld:
 
     def check_terminal_state(self): # Compare current_matrix to terminal_matrix to check terminal state, then if terminal state reaches, return to initial state.
         if (self.current_matrix == self.terminal_matrix).all():
-            print(f'{self.terminal_states_reached} Terminal state(s) reached. Reset world to initial state...............')
             self.terminal_states_reached += 1
+            print(f'{self.terminal_states_reached} Terminal state(s) reached. Reset world to initial state...............')
             self.__init__()
+            return True
+        else:
+            return False
             
 class Agent():
     def __init__(self, world, alpha=0.3, gamma=0.5):
@@ -289,8 +293,12 @@ class Agent():
                 print()
 
 def play(world, agent, policy, max_steps, SARSA=False):
+    reward_per_episode = 0
     total_reward = 0
     step = 0
+    reward_log = []
+    terminal_steps = []
+    terminal_y = []
     while step < 500:
         step += 1
         print(f'----------------------Step {step} out of {max_steps}.----------------------')
@@ -301,8 +309,14 @@ def play(world, agent, policy, max_steps, SARSA=False):
         next_state = world.current_state.copy()
         print('Next state:', next_state)
         agent.Q_learning(current_state, reward, next_state, action)
+
+        reward_per_episode += reward
         total_reward += reward
-        world.check_terminal_state()
+        if world.check_terminal_state():
+            terminal_steps.append(step-1)
+            terminal_y.append(total_reward)
+            reward_per_episode = 0
+        reward_log.append(total_reward)
     while step < max_steps:
         step += 1
         print(f'----------------------Step {step} out of {max_steps}.----------------------')
@@ -318,13 +332,23 @@ def play(world, agent, policy, max_steps, SARSA=False):
         next_state = world.current_state.copy()
         print('Next state:', next_state)
         agent.SARSA(current_state, reward, next_state, action) if SARSA else agent.Q_learning(current_state, reward, next_state, action)
+
+        reward_per_episode += reward
         total_reward += reward
-        world.check_terminal_state()
+        if world.check_terminal_state():
+            terminal_steps.append(step-1)
+            terminal_y.append(total_reward)
+            reward_per_episode = 0
+        reward_log.append(total_reward)
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
     print('Total reward:', total_reward)
     agent.print_QTable()
-    return total_reward
+    return reward_log, terminal_steps, terminal_y
 
 environment = PDWorld()
 agent = Agent(environment)
-play(environment, agent, 3, 6000, SARSA=True)
+log, steps, y = play(environment, agent, 3, 6000, SARSA=False)
+
+plt.plot(log)
+plt.scatter(steps,y, marker=',', color='r')
+plt.show()
