@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 class PDWorld:
     terminal_states_reached = 0
-
+    initial_matrix = np.array([[2, 4, 8], [3, 1, 8], [0, 0, 0], [0, 4, 0], [2, 2, 0], [4, 4, 0]])
+    terminal_matrix = np.array([[2, 4, 0], [3, 1, 0], [0, 0, 4], [0, 4, 4], [2, 2, 4], [4, 4, 4]])
     def __init__(self):
         # Initialize PDWorld
         self.height = 5
@@ -18,9 +19,9 @@ class PDWorld:
         self.current_state = list(self.initial_state) 
 
         # Use matrices to store information of P/D locations. Third column is number of blocks in that location. First two rows are for Pickup locations, the other rows are for Dropoff locations.
-        self.initial_matrix = np.array([[2, 4, 8], [3, 1, 8], [0, 0, 0], [0, 4, 0], [2, 2, 0], [4, 4, 0]])
+        self.initial_matrix = PDWorld.initial_matrix.copy()
         self.current_matrix = self.initial_matrix
-        self.terminal_matrix = np.array([[2, 4, 0], [3, 1, 0], [0, 0, 4], [0, 4, 4], [2, 2, 4], [4, 4, 4]])
+        self.terminal_matrix = PDWorld.terminal_matrix.copy()
 
         # Reward matrix (used only for visualization)
         for i in range(np.shape(self.initial_matrix)[0]):
@@ -127,7 +128,7 @@ class PDWorld:
             return False
             
 class Agent():
-    def __init__(self, world, alpha=0.3, gamma=0.5):
+    def __init__(self, world, alpha=0.8, gamma=0.5):
         self.world = world
         self.alpha = alpha
         self.gamma = gamma
@@ -345,10 +346,78 @@ def play(world, agent, policy, max_steps, SARSA=False):
     agent.print_QTable()
     return reward_log, terminal_steps, terminal_y
 
+def exp4(world, agent, policy, max_steps, SARSA=False):
+    reward_per_episode = 0
+    total_reward = 0
+    step = 0
+    reward_log = []
+    terminal_steps = []
+    terminal_y = []
+    flag = True
+    while step < 500:
+        step += 1
+        print(f'----------------------Step {step} out of {max_steps}.----------------------')
+        world.print_current_state()
+        current_state = world.current_state.copy()
+        action = agent.PRANDOM(world.get_applicable_actions())
+        reward = world.take_action(action)
+        next_state = world.current_state.copy()
+        print('Next state:', next_state)
+        agent.Q_learning(current_state, reward, next_state, action)
+
+        reward_per_episode += reward
+        total_reward += reward
+        if world.check_terminal_state():
+            terminal_steps.append(step-1)
+            terminal_y.append(total_reward)
+            reward_per_episode = 0
+        reward_log.append(total_reward)
+    while step < max_steps:
+        step += 1
+        print(f'----------------------Step {step} out of {max_steps}.----------------------')
+        world.print_current_state()
+        current_state = world.current_state.copy()
+        if policy == 1:
+            action = agent.PRANDOM(world.get_applicable_actions())
+        elif policy == 2:
+            action = agent.PEXPLOIT(world.get_applicable_actions())
+        elif policy == 3:
+            action = agent.PGREEDY(world.get_applicable_actions())
+        reward = world.take_action(action)
+        next_state = world.current_state.copy()
+        print('Next state:', next_state)
+        agent.SARSA(current_state, reward, next_state, action) if SARSA else agent.Q_learning(current_state, reward, next_state, action)
+
+        reward_per_episode += reward
+        total_reward += reward
+        if world.check_terminal_state():
+            terminal_steps.append(step-1)
+            terminal_y.append(total_reward)
+            reward_per_episode = 0
+
+       
+        if len(terminal_steps) == 3 and flag == True:
+            PDWorld.initial_matrix[0] = [2, 0, 8]
+            PDWorld.initial_matrix[1] = [0, 2, 8]
+            PDWorld.terminal_matrix[0] = [2, 0, 0]
+            PDWorld.terminal_matrix[1] = [0, 2, 0]
+            print('\n', PDWorld.terminal_matrix,'VAILON')
+            world.__init__()
+            flag = False
+
+        reward_log.append(total_reward)
+    print('Number of terminal states the agent reached:', world.terminal_states_reached)
+    print('Total reward:', total_reward)
+    agent.print_QTable()
+    return reward_log, terminal_steps, terminal_y
+
 environment = PDWorld()
 agent = Agent(environment)
-log, steps, y = play(environment, agent, 3, 6000, SARSA=False)
-
+# log, steps, y = play(environment, agent, 2, 6000, SARSA=False)
+log, steps, y = exp4(environment, agent, 2, 6000, SARSA=False)
 plt.plot(log)
+plt.xlabel('Steps')
+plt.ylabel('Total reward')
+print(steps)
 plt.scatter(steps,y, marker=',', color='r')
 plt.show()
