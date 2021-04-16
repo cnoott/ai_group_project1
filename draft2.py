@@ -1,25 +1,13 @@
-class A:
-    blah1_is_beautiful = True
-    blah2_is_beautiful = True
-    blah3_is_beautiful = True
+import matplotlib.pyplot as plt
+import numpy as np
 
-    def __init__(self):
-        self.blah1_is_beautiful = A.blah1_is_beautiful
-        self.blah2_is_beautiful = A.blah2_is_beautiful
-        self.blah3_is_beautiful = A.blah3_is_beautiful
+# Some example data to display
+x = np.linspace(0, 2 * np.pi, 400)
+y = np.sin(x ** 2)
 
+fig, (ax1, ax2) = plt.subplots(2, sharex=True)
+fig.suptitle('Aligning x-axis using sharex')
+ax1.plot(x, y)
+ax2.plot(x + 1, -y)
 
-class B:
-    def __init__(self):
-        self.null_is_null = None
-
-    def change_some_values(self):
-        A.blah1_is_beautiful = False
-        A.blah2_is_beautiful = False
-        A.blah3_is_beautiful = False
-
-
-obj1 = B()
-obj1.change_some_values()
-obj2 = A()
-print(obj2.blah1_is_beautiful)
+plt.show()

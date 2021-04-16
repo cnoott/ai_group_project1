@@ -128,7 +128,7 @@ class PDWorld:
             return False
             
 class Agent():
-    def __init__(self, world, alpha=0.8, gamma=0.5):
+    def __init__(self, world, alpha, gamma):
         self.world = world
         self.alpha = alpha
         self.gamma = gamma
@@ -295,10 +295,11 @@ class Agent():
 
 def play(world, agent, policy, max_steps, SARSA=False):
     reward_per_episode = 0
+    reward_per_episode_log = [0]
     total_reward = 0
     step = 0
     reward_log = []
-    terminal_steps = []
+    terminal_steps = [0]
     terminal_y = []
     while step < 500:
         step += 1
@@ -316,6 +317,7 @@ def play(world, agent, policy, max_steps, SARSA=False):
         if world.check_terminal_state():
             terminal_steps.append(step-1)
             terminal_y.append(total_reward)
+            reward_per_episode_log.append(reward_per_episode)
             reward_per_episode = 0
         reward_log.append(total_reward)
     while step < max_steps:
@@ -339,19 +341,21 @@ def play(world, agent, policy, max_steps, SARSA=False):
         if world.check_terminal_state():
             terminal_steps.append(step-1)
             terminal_y.append(total_reward)
+            reward_per_episode_log.append(reward_per_episode)
             reward_per_episode = 0
         reward_log.append(total_reward)
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
     print('Total reward:', total_reward)
     agent.print_QTable()
-    return reward_log, terminal_steps, terminal_y
+    return reward_log, terminal_steps, terminal_y, reward_per_episode_log
 
 def exp4(world, agent, policy, max_steps, SARSA=False):
     reward_per_episode = 0
+    reward_per_episode_log = [0]
     total_reward = 0
     step = 0
     reward_log = []
-    terminal_steps = []
+    terminal_steps = [0]
     terminal_y = []
     flag = True
     while step < 500:
@@ -370,7 +374,19 @@ def exp4(world, agent, policy, max_steps, SARSA=False):
         if world.check_terminal_state():
             terminal_steps.append(step-1)
             terminal_y.append(total_reward)
+            reward_per_episode_log.append(reward_per_episode)
             reward_per_episode = 0
+
+        if len(terminal_steps) == 4 and flag == True:
+            PDWorld.initial_matrix[0] = [2, 0, 8]
+            PDWorld.initial_matrix[1] = [0, 2, 8]
+            PDWorld.terminal_matrix[0] = [2, 0, 0]
+            PDWorld.terminal_matrix[1] = [0, 2, 0]
+            print('\n', world.terminal_matrix,'VAILON')
+            world.__init__()
+            print('\n', world.terminal_matrix,'VAILON')
+            flag = False
+
         reward_log.append(total_reward)
     while step < max_steps:
         step += 1
@@ -393,31 +409,57 @@ def exp4(world, agent, policy, max_steps, SARSA=False):
         if world.check_terminal_state():
             terminal_steps.append(step-1)
             terminal_y.append(total_reward)
+            reward_per_episode_log.append(reward_per_episode)
             reward_per_episode = 0
 
-       
-        if len(terminal_steps) == 3 and flag == True:
+        if len(terminal_steps) == 4 and flag == True:
             PDWorld.initial_matrix[0] = [2, 0, 8]
             PDWorld.initial_matrix[1] = [0, 2, 8]
             PDWorld.terminal_matrix[0] = [2, 0, 0]
             PDWorld.terminal_matrix[1] = [0, 2, 0]
-            print('\n', PDWorld.terminal_matrix,'VAILON')
+            print('\n', world.terminal_matrix,'VAILON')
             world.__init__()
+            print('\n', world.terminal_matrix,'VAILON')
             flag = False
 
+        if len(terminal_steps) == 7:
+              break
         reward_log.append(total_reward)
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
     print('Total reward:', total_reward)
     agent.print_QTable()
-    return reward_log, terminal_steps, terminal_y
+    return reward_log, terminal_steps, terminal_y, reward_per_episode_log
 
 environment = PDWorld()
-agent = Agent(environment)
-# log, steps, y = play(environment, agent, 2, 6000, SARSA=False)
-log, steps, y = exp4(environment, agent, 2, 6000, SARSA=False)
+agent = Agent(environment, alpha=0.3, gamma=0.5)
+log, terminal_steps, y, reward_per_episode_log = play(environment, agent, 2, 6000, SARSA=False)
+# log, terminal_steps, y, reward_per_episode_log = exp4(environment, agent, 2, 6000, SARSA=True) # Experiment 4
+
+steps_between_terminal_states = [0]
+for step in range(1, len(terminal_steps)):
+    steps = terminal_steps[step] - terminal_steps[step-1]
+    steps_between_terminal_states.append(steps)
+terminal_states_number = []
+for i in range(len(steps_between_terminal_states)):
+    i=i
+    terminal_states_number.append(i)
+
+# Figure 1
 plt.plot(log)
-plt.xlabel('Steps')
+plt.xlabel('Step')
 plt.ylabel('Total reward')
-print(steps)
-plt.scatter(steps,y, marker=',', color='r')
+plt.title('Run 1: Bank account of PEXLOIT (alpha=0.3, gamma=0.5)')
+plt.scatter(terminal_steps[1:], y, marker=',', color='r')
+
+# Figure 2
+fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=(6,6))
+fig.suptitle('Run 2: Performance of PEXLOIT (alpha=0.3, gamma=0.5)')
+fig.text(0.5, 0.04,'Terminal state', ha='center')
+ax1.set_ylabel('Steps to reach a terminal state')
+ax2.set_ylabel('Reward per episode')
+ax1.plot(terminal_states_number, steps_between_terminal_states)
+ax2.plot(terminal_states_number, reward_per_episode_log)
+plt.locator_params(axis="both", integer=True)
+plt.xticks(np.arange(0, len(terminal_states_number), 1))
+
 plt.show()
