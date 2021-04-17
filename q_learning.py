@@ -3,6 +3,7 @@ import operator
 import time
 import random
 import matplotlib.pyplot as plt
+from  matplotlib.tri import Triangulation
 
 class PDWorld:
     terminal_states_reached = 0
@@ -293,6 +294,88 @@ class Agent():
                     print(f'{k}: {v:.4f}','\t', end='', sep='')
                 print()
 
+    def return_Q_values(self):
+        ''' Returns tuple of q_table with block and wihout '''
+
+        #with block
+        N_block = np.arange(25,dtype=float).reshape(5,5)
+        E_block = np.arange(25,dtype=float).reshape(5,5)
+        S_block = np.arange(25,dtype=float).reshape(5,5)
+        W_block = np.arange(25,dtype=float).reshape(5,5)
+
+        #north values
+        for i in range(5):
+            for j in range(5):
+                N_block[i][j] = self.q_table_block[i,j]['N']
+
+        #east values
+        for i in range(5):
+            for j in range(5):
+                E_block[i][j] = self.q_table_block[i,j]['E']
+
+        #south values
+        for i in range(5):
+            for j in range(5):
+                S_block[i][j] = self.q_table_block[i,j]['S']
+
+        #west values
+        for i in range(5):
+            for j in range(5):
+                W_block[i][j] = self.q_table_block[i,j]['W']
+
+        
+        #no block
+        N = np.arange(25,dtype=float).reshape(5,5)
+        E = np.arange(25,dtype=float).reshape(5,5)
+        S = np.arange(25,dtype=float).reshape(5,5)
+        W = np.arange(25,dtype=float).reshape(5,5)
+
+        #north values
+        for i in range(5):
+            for j in range(5):
+                N[i][j] = self.q_table_block[i,j]['N']
+
+        #east values
+        for i in range(5):
+            for j in range(5):
+                E[i][j] = self.q_table_block[i,j]['E']
+
+        #south values
+        for i in range(5):
+            for j in range(5):
+                S[i][j] = self.q_table_block[i,j]['S']
+
+        #west values
+        for i in range(5):
+            for j in range(5):
+                W[i][j] = self.q_table_block[i,j]['W']
+
+
+        return ([N_block,E_block,S_block,W_block], [N,E,S,W])
+
+
+#
+#FUNCTIONS FOR HEATMAP
+#
+def triangulation_for_triheatmap(M, N):
+    xv, yv = np.meshgrid(np.arange(-0.5, M), np.arange(-0.5, N))  # vertices of the little squares
+    xc, yc = np.meshgrid(np.arange(0, M), np.arange(0, N))  # centers of the little squares
+    x = np.concatenate([xv.ravel(), xc.ravel()])
+    y = np.concatenate([yv.ravel(), yc.ravel()])
+    cstart = (M + 1) * (N + 1)  # indices of the centers
+
+    trianglesN = [(i + j * (M + 1), i + 1 + j * (M + 1), cstart + i + j * M)
+                  for j in range(N) for i in range(M)]
+    trianglesE = [(i + 1 + j * (M + 1), i + 1 + (j + 1) * (M + 1), cstart + i + j * M)
+                  for j in range(N) for i in range(M)]
+    trianglesS = [(i + 1 + (j + 1) * (M + 1), i + (j + 1) * (M + 1), cstart + i + j * M)
+                  for j in range(N) for i in range(M)]
+    trianglesW = [(i + (j + 1) * (M + 1), i + j * (M + 1), cstart + i + j * M)
+                  for j in range(N) for i in range(M)]
+
+    return [Triangulation(x, y, triangles) for triangles in [trianglesN, trianglesE, trianglesS, trianglesW]]
+
+ 
 def play(world, agent, policy, max_steps, SARSA=False):
     reward_per_episode = 0
     reward_per_episode_log = [0]
@@ -347,7 +430,9 @@ def play(world, agent, policy, max_steps, SARSA=False):
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
     print('Total reward:', total_reward)
     agent.print_QTable()
-    return reward_log, terminal_steps, terminal_y, reward_per_episode_log
+
+    q_values = agent.return_Q_values()
+    return reward_log, terminal_steps, terminal_y, reward_per_episode_log, q_values #q_values for heatmap
 
 def exp4(world, agent, policy, max_steps, SARSA=False):
     reward_per_episode = 0
@@ -428,12 +513,14 @@ def exp4(world, agent, policy, max_steps, SARSA=False):
     print('Number of terminal states the agent reached:', world.terminal_states_reached)
     print('Total reward:', total_reward)
     agent.print_QTable()
-    return reward_log, terminal_steps, terminal_y, reward_per_episode_log
+    q_values = agent.return_Q_values()
+
+    return reward_log, terminal_steps, terminal_y, reward_per_episode_log, q_values #q_values for heatmap
 
 environment = PDWorld()
 agent = Agent(environment, alpha=0.3, gamma=0.5)
-log, terminal_steps, y, reward_per_episode_log = play(environment, agent, 2, 6000, SARSA=False)
-# log, terminal_steps, y, reward_per_episode_log = exp4(environment, agent, 2, 6000, SARSA=True) # Experiment 4
+#log, terminal_steps, y, reward_per_episode_log, q_values = play(environment, agent, 2, 6000, SARSA=True)
+log, terminal_steps, y, reward_per_episode_log,q_values = exp4(environment, agent, 2, 6000, SARSA=True) # Experiment 4
 
 steps_between_terminal_states = [0]
 for step in range(1, len(terminal_steps)):
@@ -448,12 +535,12 @@ for i in range(len(steps_between_terminal_states)):
 plt.plot(log)
 plt.xlabel('Step')
 plt.ylabel('Total reward')
-plt.title('Run 1: Bank account of PEXLOIT (alpha=0.3, gamma=0.5)')
+plt.title('Run 1: Experiment 4 (alpha=0.3, gamma=0.5)')
 plt.scatter(terminal_steps[1:], y, marker=',', color='r')
 
 # Figure 2
 fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=(6,6))
-fig.suptitle('Run 2: Performance of PEXLOIT (alpha=0.3, gamma=0.5)')
+fig.suptitle('Run 1: Experiment 4 (alpha=0.3, gamma=0.5)')
 fig.text(0.5, 0.04,'Terminal state', ha='center')
 ax1.set_ylabel('Steps to reach a terminal state')
 ax2.set_ylabel('Reward per episode')
@@ -462,4 +549,58 @@ ax2.plot(terminal_states_number, reward_per_episode_log)
 plt.locator_params(axis="both", integer=True)
 plt.xticks(np.arange(0, len(terminal_states_number), 1))
 
+#heatmap
+q_values_block = q_values[0]
+q_values_no_block = q_values[1]
+
+#plotting with block
+M, N = 5,5
+triangul = triangulation_for_triheatmap(M, N)
+values = q_values_block
+cmaps = ['Blues', 'Greens', 'Purples', 'Reds']  # ['winter', 'spring', 'summer', 'autumn']
+norms = [plt.Normalize(-0.5, 1) for _ in range(4)]
+fig, ax = plt.subplots()
+
+plt.title('Run1 Experiment 4 Q table with block')
+imgs = [ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=0, vmax=1, ec='white')
+                for t, val in zip(triangul, values)]
+
+for val, dir in zip(values, [(-1, 0), (0, 1), (1, 0), (0, -1)]):
+    for i in range(M):
+        for j in range(N):
+            v = val[j][i]
+            ax.text(i + 0.3 * dir[1], j + 0.3 * dir[0], f'{v:.2f}', color='k' if 0.2 < v < 0.8 else 'w', ha='center', va='center')
+
+cbar = fig.colorbar(imgs[0], ax=ax)
+ax.set_xticks(range(M))
+ax.set_yticks(range(N))
+ax.invert_yaxis()
+ax.margins(x=0, y=0)
+ax.set_aspect('equal', 'box')  # square cells
+
+#without block
+values = q_values_no_block
+cmaps = ['Blues', 'Greens', 'Purples', 'Reds']  # ['winter', 'spring', 'summer', 'autumn']
+norms = [plt.Normalize(-0.5, 1) for _ in range(4)]
+fig, ax = plt.subplots()
+
+imgs = [ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=0, vmax=1, ec='white')
+                for t, val in zip(triangul, values)]
+
+plt.title('Run1 Experiment 4 Q table without block')
+for val, dir in zip(values, [(-1, 0), (0, 1), (1, 0), (0, -1)]):
+    for i in range(M):
+        for j in range(N):
+            v = val[j][i]
+            ax.text(i + 0.3 * dir[1], j + 0.3 * dir[0], f'{v:.2f}', color='k' if 0.2 < v < 0.8 else 'w', ha='center', va='center')
+
+cbar = fig.colorbar(imgs[0], ax=ax)
+ax.set_xticks(range(M))
+ax.set_yticks(range(N))
+ax.invert_yaxis()
+ax.margins(x=0, y=0)
+ax.set_aspect('equal', 'box')  # square cells
+
+
 plt.show()
+plt.tight_layout()
