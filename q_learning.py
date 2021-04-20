@@ -584,7 +584,7 @@ cmaps = ['Blues', 'Greens', 'Purples', 'Reds']  # ['winter', 'spring', 'summer',
 norms = [plt.Normalize(-0.5, 1) for _ in range(4)]
 fig, ax = plt.subplots()
 
-imgs = [ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=0, vmax=1, ec='white')
+imgs = [ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=-2, vmax=2, ec='white')
                 for t, val in zip(triangul, values)]
 
 plt.title('Run1 Experiment 4 Q table without block')
